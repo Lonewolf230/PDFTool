@@ -1,8 +1,10 @@
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pdftool/screens/actions_screen.dart';
+import 'package:pdftool/utilities/auth_service.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,16 +14,40 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String? _filePath;
+  final AuthService _authService = AuthService();
+
+  Future<void> _signOut(BuildContext context) async {
+    try {
+      await _authService.signOut();
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error Signing Out:$e')));
+    }
+  }
 
   void pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result =
+        await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result != null) {
-      setState(() {
-        _filePath = result.files.single.path;
-      });
+      List<String> paths = result.paths.map((path) => path!).toList();
+      if (mounted) {
+        Navigator.push(context, MaterialPageRoute(builder: (context) {
+          return ActionsScreen(
+            paths: paths,
+          );
+        }));
+      }
     } else {
-      print('No file selected');
+      const snackBar = SnackBar(
+        content: Text("No file selected"),
+        duration: Duration(seconds: 2),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
     }
   }
 
@@ -36,58 +62,47 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.logout))],
+        actions: [
+          IconButton(
+              onPressed: () {
+                _signOut(context);
+              },
+              icon: const Icon(Icons.logout))
+        ],
       ),
-      body: GridView(
-        padding: const EdgeInsets.all(20),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          MenuButtons(
-            icon: Icons.scanner,
-            text: 'Start Scanning',
-            onPressed: () => {},
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              MenuButtons(
+                icon: Icons.scanner,
+                text: 'Start Scanning',
+                onPressed: () => {},
+              ),
+              const SizedBox(
+                width: 20,
+              ),
+              MenuButtons(
+                icon: Icons.browse_gallery,
+                text: 'Create from Gallery',
+                onPressed: () => {},
+              ),
+            ],
           ),
-          MenuButtons(
-            icon: Icons.browse_gallery,
-            text: 'Create from Gallery',
-            onPressed: () => {},
+          const SizedBox(
+            height: 20,
           ),
-          MenuButtons(
-            icon: Icons.merge_rounded,
-            text: 'Merge PDFs',
-            onPressed: () => {},
+          const SizedBox(
+            height: 20,
           ),
-          MenuButtons(
-            icon: Icons.call_split_outlined,
-            text: 'Split PDFs',
-            onPressed: () => {},
-          ),
-          MenuButtons(
-            icon: Icons.picture_as_pdf_outlined,
-            text: 'Convert between formats',
-            onPressed: () => {},
-          ),
-          MenuButtons(
-            icon: Icons.compress,
-            text: 'Compress PDFs',
-            onPressed: () {
-              pickFile();
-            },
-          ),
-          MenuButtons(
-            icon: Icons.picture_as_pdf,
-            text: 'Convert to PDF',
-            onPressed: () => {},
-          ),
-          MenuButtons(
-            icon: Icons.picture_as_pdf,
-            text: 'Convert to PDF',
-            onPressed: () => {},
-          ),
+          TextButton.icon(
+              onPressed: () {
+                pickFile();
+              },
+              label: const Text('Choose Files'),
+              icon: const Icon(Icons.file_upload)),
         ],
       ),
     );

@@ -13,7 +13,6 @@ class MenuButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Material(
       color: Colors.green.shade200,
       borderRadius: BorderRadius.circular(20),
@@ -23,7 +22,7 @@ class MenuButtons extends StatelessWidget {
         },
         splashColor: Theme.of(context).colorScheme.secondary,
         child: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
