@@ -38,6 +38,9 @@ dependencies:
   firebase_auth: ^5.3.4
   file_picker: ^8.1.7
   google_sign_in: ^6.2.2
+  image_picker: ^1.1.2
+  image_cropper: ^8.1.0
+  crop_image: ^1.0.15
 
 dev_dependencies:
   flutter_test:
