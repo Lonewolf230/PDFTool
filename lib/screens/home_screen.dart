@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:pdftool/screens/actions_screen.dart';
+import 'package:pdftool/screens/image_display.dart';
 import 'package:pdftool/utilities/auth_service.dart';
+import 'package:pdftool/utilities/image_service.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
+  final ImageService _imageService = ImageService();
+
+  List<File> paths = [];
+
+  void displayImage() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => ImageDisplay()));
+  }
 
   Future<void> _signOut(BuildContext context) async {
     try {
@@ -79,7 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
               MenuButtons(
                 icon: Icons.scanner,
                 text: 'Start Scanning',
-                onPressed: () => {},
+                onPressed: () => {
+                  displayImage(),
+                },
               ),
               const SizedBox(
                 width: 20,
