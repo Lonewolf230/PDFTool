@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pdftool/screens/auth_screen.dart';
 import 'package:pdftool/screens/home_screen.dart';
@@ -13,7 +14,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn().signInSilently();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(const MyApp());
+  runApp(ProviderScope(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -34,7 +35,7 @@ class MyApp extends StatelessWidget {
                 return LoadingScreen();
               }
               if (snapshot.hasData) {
-                return const HomeScreen();
+                return HomeScreen();
               }
               if (snapshot.hasError) {
                 return Center(

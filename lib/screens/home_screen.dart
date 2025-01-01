@@ -1,26 +1,18 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdftool/screens/actions_screen.dart';
 import 'package:pdftool/screens/image_display.dart';
 import 'package:pdftool/utilities/auth_service.dart';
-import 'package:pdftool/utilities/image_service.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends ConsumerWidget {
+  HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
-  final ImageService _imageService = ImageService();
 
-  List<File> paths = [];
-
-  void displayImage() {
+  void displayImage(BuildContext context) {
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (context) => ImageDisplay()));
   }
@@ -37,15 +29,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void pickFile() async {
+  void pickFile(BuildContext context) async {
     FilePickerResult? result =
         await FilePicker.platform.pickFiles(allowMultiple: true);
-    if (result != null) {
-      List<String> paths = result.paths.map((path) => path!).toList();
-      if (mounted) {
+    if (result != null && result.paths.isNotEmpty) {
+      List<Map<String, dynamic>> paths = result.paths
+          .where((path) => path != null)
+          .map((path) => {
+                'path': path!,
+                'key': DateTime.now().microsecondsSinceEpoch.toString()
+              })
+          .toList();
+      if (context.mounted) {
+        print(paths.runtimeType);
         Navigator.push(context, MaterialPageRoute(builder: (context) {
           return ActionsScreen(
-            paths: paths,
+            initalPaths: paths,
           );
         }));
       }
@@ -54,14 +53,14 @@ class _HomeScreenState extends State<HomeScreen> {
         content: Text("No file selected"),
         duration: Duration(seconds: 2),
       );
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // TODO: implement build
     return Scaffold(
       appBar: AppBar(
@@ -89,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.scanner,
                 text: 'Start Scanning',
                 onPressed: () => {
-                  displayImage(),
+                  displayImage(context),
                 },
               ),
               const SizedBox(
@@ -98,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
               MenuButtons(
                 icon: Icons.browse_gallery,
                 text: 'Create from Gallery',
-                onPressed: () => {},
+                onPressed: () => {displayImage(context)},
               ),
             ],
           ),
@@ -110,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton.icon(
               onPressed: () {
-                pickFile();
+                pickFile(context);
               },
               label: const Text('Choose Files'),
               icon: const Icon(Icons.file_upload)),
