@@ -7,7 +7,7 @@ buildscript {
         // Add the Android Gradle plugin dependency here
         classpath 'com.android.tools.build:gradle:8.1.1'
          // Ensure this version matches your Gradle version
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.21'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'
         classpath 'com.google.gms:google-services:4.3.15'
 
 
@@ -25,7 +25,27 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.plugins.whenPluginAdded { plugin ->
+        if (plugin.class.name.startsWith('org.jetbrains.kotlin')) {
+            project.kotlin {
+                jvmToolchain(17)
+            }
+        }
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null) {
+                    namespace project.group
+                }
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
 }
+
+
 
 subprojects {
     afterEvaluate { project ->
@@ -42,6 +62,11 @@ subprojects {
 
 subprojects {
     project.evaluationDependsOn(":app")
+
+    // Define the generateLockfiles task
+    task generateLockfiles(type: Exec) {
+        commandLine 'gradlew', 'dependencies', '--write-locks'
+    }
 }
 
 tasks.register("clean", Delete) {

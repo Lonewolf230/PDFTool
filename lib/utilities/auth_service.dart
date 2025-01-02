@@ -68,5 +68,6 @@ class AuthService {
       print('Error Signing Out: $e');
       rethrow;
     }
+    return null;
   }
 }
