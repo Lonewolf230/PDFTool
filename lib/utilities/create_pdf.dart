@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:dart_pdf_reader/dart_pdf_reader_io.dart' as pdf;
 
 class CreatePdf {
   Future<String> createPdf(List<File> images) async {
@@ -41,5 +43,18 @@ class CreatePdf {
       print('Error saving image: $e');
     }
     return '';
+  }
+
+  Future<double> getFileSize(String path) async {
+    final fileBytes = await File(path).readAsBytes();
+    return (fileBytes.lengthInBytes) / (1000 * 1000);
+  }
+
+  Future<int> getFilePages(String path) async {
+    final stream = pdf.FileStream(File(path).openSync());
+    final doc = await pdf.PDFParser(stream).parse();
+    final catalog = await doc.catalog;
+    final pages = await catalog.getPages();
+    return pages.pageCount;
   }
 }

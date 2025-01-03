@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:pdftool/widgets/loading_screen.dart';
 import 'package:pdftool/utilities/create_pdf.dart';
 import 'package:pdftool/utilities/cropper_image.dart';
@@ -27,6 +28,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
   void _createPdf() async {
     if (imageWidgets.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No images to create PDF')),
       );
@@ -48,21 +50,30 @@ class _ImageDisplayState extends State<ImageDisplay> {
     setState(() {
       loading = true;
     });
-    String savedPath = await _pdfCreator.createPdf(images);
-    setState(() {
-      loading = false;
-    });
+    try {
+      String savedPath = await _pdfCreator.createPdf(images);
+      setState(() {
+        loading = false;
+      });
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    if (savedPath.isNotEmpty) {
+      if (savedPath.isNotEmpty) {
+        await OpenFilex.open(savedPath);
+
+        if (mounted) Navigator.pop(context);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create PDF')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      if (context.mounted) Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF saved to: $savedPath')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to create PDF')),
-      );
+          SnackBar(content: Text('An error occured: Cannot create Pdf')));
     }
   }
 

@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdftool/screens/actions_screen.dart';
 import 'package:pdftool/screens/image_display.dart';
 import 'package:pdftool/utilities/auth_service.dart';
+import 'package:pdftool/utilities/create_pdf.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
 
 class HomeScreen extends ConsumerWidget {
   HomeScreen({super.key});
 
   final AuthService _authService = AuthService();
+  final CreatePdf _fileServ = CreatePdf();
 
   void displayImage(BuildContext context) {
     Navigator.of(context)
@@ -32,15 +34,18 @@ class HomeScreen extends ConsumerWidget {
     FilePickerResult? result =
         await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result != null && result.paths.isNotEmpty) {
-      List<Map<String, dynamic>> paths = result.paths
-          .where((path) => path != null)
-          .map((path) => {
-                'path': path!,
-                'key': DateTime.now().microsecondsSinceEpoch.toString()
-              })
-          .toList();
+      List<Map<String, dynamic>> paths = await Future.wait(
+          result.paths.where((path) => path != null).map((path) async {
+        final size = await _fileServ.getFileSize(path!);
+        // final pages = await _fileServ.getFilePages(path!);
+        return {
+          'path': path,
+          'key': DateTime.now().microsecondsSinceEpoch.toString(),
+          'size': size.toStringAsFixed(2),
+          'pages': null
+        };
+      }).toList());
       if (context.mounted) {
-        print(paths.runtimeType);
         Navigator.push(context, MaterialPageRoute(builder: (context) {
           return ActionsScreen(
             initalPaths: paths,

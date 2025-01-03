@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pdftool/providers/paths_notifier.dart';
+import 'package:pdftool/utilities/create_pdf.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -92,7 +93,7 @@ class ActionsScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final item = paths[index];
                       return Dismissible(
-                        direction: DismissDirection.horizontal,
+                        direction: DismissDirection.endToStart,
                         background: Container(
                           color: Colors.red,
                           alignment: Alignment.centerRight,
@@ -134,7 +135,7 @@ class ActionsScreen extends ConsumerWidget {
                             ),
                             trailing: ReorderableDragStartListener(
                               index: index,
-                              child: const Icon(Icons.drag_handle),
+                              child: Text('${item['size']} Mb'),
                             ),
                           ),
                         ),
