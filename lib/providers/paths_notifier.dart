@@ -1,4 +1,4 @@
-import 'package:riverpod/riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final pathsProvider =
     StateNotifierProvider<PathsNotifier, List<Map<String, dynamic>>>((ref) {

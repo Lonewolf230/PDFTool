@@ -5,7 +5,7 @@ import 'package:pdftool/screens/auth_screen.dart';
 import 'package:pdftool/screens/home_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:pdftool/screens/loading_screen.dart';
+import 'package:pdftool/widgets/loading_screen.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
