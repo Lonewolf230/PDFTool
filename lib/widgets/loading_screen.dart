@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class LoadingScreen extends StatelessWidget {
-  const LoadingScreen({super.key});
+  const LoadingScreen({super.key, required this.message});
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class LoadingScreen extends StatelessWidget {
             backgroundColor: Colors.green,
           ),
           Text(
-            'Creating Pdf please wait',
+            message,
             textAlign: TextAlign.center,
           )
         ],

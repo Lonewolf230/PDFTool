@@ -32,7 +32,9 @@ class MyApp extends StatelessWidget {
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return LoadingScreen();
+                return LoadingScreen(
+                  message: 'Loading..',
+                );
               }
               if (snapshot.hasData) {
                 return HomeScreen();
