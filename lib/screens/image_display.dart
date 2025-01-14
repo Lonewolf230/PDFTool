@@ -227,7 +227,9 @@ class _ImageDisplayState extends State<ImageDisplay> {
                 Positioned.fill(
                   child: Container(
                     color: Color.fromRGBO(0, 0, 0, 0.5),
-                    child: LoadingScreen(),
+                    child: LoadingScreen(
+                      message: 'Creating PDF...',
+                    ),
                   ),
                 )
             ]),

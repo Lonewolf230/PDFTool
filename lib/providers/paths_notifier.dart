@@ -13,17 +13,25 @@ class PathsNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   }
 
   void removePath(int index) {
-    state = [...state]..removeAt(index);
+    final updatedPaths = [...state]..removeAt(index);
+    state = updatedPaths;
   }
 
   void reorderPaths(int oldIndex, int newIndex) {
-    final paths = [...state];
+    // final paths = [...state];
+    // if (oldIndex < newIndex) {
+    //   newIndex -= 1;
+    // }
+    // final path = paths.removeAt(oldIndex);
+    // paths.insert(newIndex, path);
+    // state = paths;
+    final updatedPaths = [...state];
     if (oldIndex < newIndex) {
-      newIndex -= 1;
+      newIndex = -1;
     }
-    final path = paths.removeAt(oldIndex);
-    paths.insert(newIndex, path);
-    state = paths;
+    final path = updatedPaths.removeAt(oldIndex);
+    updatedPaths.insert(newIndex, path);
+    state = updatedPaths;
   }
 
   List<Map<String, dynamic>> getPaths() {

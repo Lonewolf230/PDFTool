@@ -1,15 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:pdftool/providers/paths_notifier.dart';
-import 'package:pdftool/utilities/create_pdf.dart';
+import 'package:pdftool/utilities/actions_utilities.dart';
+import 'package:pdftool/utilities/pdf_processing.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ActionsScreen extends ConsumerWidget {
+class ActionsScreen extends ConsumerStatefulWidget {
   const ActionsScreen({super.key, required this.initalPaths});
   final List<Map<String, dynamic>> initalPaths;
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() {
+    return _ActionsScreenState();
+  }
+}
+
+class _ActionsScreenState extends ConsumerState<ActionsScreen> {
+  final PdfProcessing pdfProcessing = PdfProcessing();
+  final ActionsUtilities actionsUtilities = ActionsUtilities();
+  int fileCount = 0;
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initalPaths.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(pathsProvider.notifier).setPaths(widget.initalPaths);
+      });
+    }
+    fileCount = widget.initalPaths.length;
+  }
+
+  void mergePdfs(WidgetRef ref) async {
+    final paths = ref.read(pathsProvider);
+    final mergedPdf = await pdfProcessing.mergeFiles(paths);
+    final mergedPath = await pdfProcessing.savePdf(mergedPdf, 'merged');
+    print('Merged PDF saved at $mergedPath');
+  }
+
+  void splitPdf(WidgetRef ref) async {
+    final paths = ref.read(pathsProvider);
+    final breakpoints = await actionsUtilities.fixBreakpoints(context);
+    if (breakpoints == null || breakpoints.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('No breakpoints set')));
+      return;
+    }
+
+    final splitPdfs = await pdfProcessing.splitFile(paths, breakpoints);
+    for (int i = 0; i < splitPdfs.length; i++) {
+      final splitPath =
+          await pdfProcessing.savePdf(splitPdfs[i], 'split_${i + 1}');
+      print('Split PDF saved at $splitPath');
+    }
+  }
 
   void showFiles(BuildContext context, WidgetRef ref) {
-    final paths = ref.read(pathsProvider);
+    final paths = ref.watch(pathsProvider);
     if (paths.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No files selected')),
@@ -160,13 +209,8 @@ class ActionsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Initialize paths after the first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (initalPaths.isNotEmpty) {
-        ref.read(pathsProvider.notifier).setPaths(initalPaths);
-      }
-    });
 
     return Scaffold(
       appBar: AppBar(
@@ -202,12 +246,16 @@ class ActionsScreen extends ConsumerWidget {
                 MenuButtons(
                   icon: Icons.splitscreen_outlined,
                   text: 'Split File',
-                  onPressed: () => {},
+                  onPressed: () async {
+                    splitPdf(ref);
+                  },
                 ),
                 MenuButtons(
                   icon: Icons.merge_type,
                   text: 'Merge Files',
-                  onPressed: () => {},
+                  onPressed: () async {
+                    mergePdfs(ref);
+                  },
                 ),
                 MenuButtons(
                   icon: Icons.picture_as_pdf,

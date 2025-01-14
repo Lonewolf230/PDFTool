@@ -50,6 +50,8 @@ dependencies:
   pdf: ^3.11.1
   dart_pdf_reader: ^2.1.0
   open_filex: ^4.6.0
+  syncfusion_flutter_pdf: ^28.1.38
+  flutter_dotenv: ^5.2.1
   
 
 dev_dependencies:

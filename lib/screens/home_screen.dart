@@ -31,8 +31,10 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void pickFile(BuildContext context) async {
-    FilePickerResult? result =
-        await FilePicker.platform.pickFiles(allowMultiple: true);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'docx']);
     if (result != null && result.paths.isNotEmpty) {
       List<Map<String, dynamic>> paths = await Future.wait(
           result.paths.where((path) => path != null).map((path) async {
