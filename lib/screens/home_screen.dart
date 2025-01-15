@@ -13,9 +13,21 @@ class HomeScreen extends ConsumerWidget {
   final AuthService _authService = AuthService();
   final CreatePdf _fileServ = CreatePdf();
 
-  void displayImage(BuildContext context) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => ImageDisplay()));
+  void displayImage(BuildContext context) async {
+    try {
+      final message = await Navigator.of(context)
+          .push(MaterialPageRoute(builder: (context) => ImageDisplay()));
+      if (!context.mounted) return;
+      if (message != null && message.isNotEmpty) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error displaying images')));
+    }
   }
 
   Future<void> _signOut(BuildContext context) async {
@@ -39,20 +51,26 @@ class HomeScreen extends ConsumerWidget {
       List<Map<String, dynamic>> paths = await Future.wait(
           result.paths.where((path) => path != null).map((path) async {
         final size = await _fileServ.getFileSize(path!);
+        final pages = await _fileServ.getFilePages(path);
         // final pages = await _fileServ.getFilePages(path!);
         return {
           'path': path,
           'key': DateTime.now().microsecondsSinceEpoch.toString(),
           'size': size.toStringAsFixed(2),
-          'pages': null
+          'pages': pages
         };
       }).toList());
       if (context.mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
+        final message =
+            await Navigator.push(context, MaterialPageRoute(builder: (context) {
           return ActionsScreen(
             initalPaths: paths,
           );
         }));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     } else {
       const snackBar = SnackBar(

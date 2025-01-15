@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -76,13 +77,34 @@ class PdfProcessing {
     return splitFiles;
   }
 
-  Future<String?> savePdf(Uint8List bytes, String category) async {
+  Future<Uint8List> encryptPdf(
+      Map<String, dynamic> map, String userPwd, String ownerPwd) async {
+    try {
+      final bytes = await File(map['path']).readAsBytes();
+      final PdfDocument document = PdfDocument(inputBytes: bytes);
+      final PdfSecurity security = document.security;
+      security.userPassword = userPwd;
+      security.ownerPassword = ownerPwd;
+
+      security.algorithm = PdfEncryptionAlgorithm.aesx256Bit;
+      final encryptedBytes = await document.save();
+      document.dispose();
+      return Uint8List.fromList(encryptedBytes);
+    } catch (e) {
+      return Uint8List.fromList([]);
+    }
+  }
+
+  Future<String?> savePdf(
+      Uint8List bytes, String category, String originalFileName) async {
     try {
       if (Platform.isAndroid) {
         final directory = await getExternalStorageDirectory();
         if (directory != null) {
-          final String filePath =
-              '${directory.path}/${category}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+          final String fileName = category == 'merged'
+              ? DateTime.now().millisecondsSinceEpoch.toString()
+              : originalFileName;
+          final String filePath = '${directory.path}/${category}_$fileName.pdf';
           await File(filePath).writeAsBytes(bytes);
           return filePath;
         }
