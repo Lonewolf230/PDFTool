@@ -15,6 +15,7 @@ class ImageDisplay extends StatefulWidget {
 
 class _ImageDisplayState extends State<ImageDisplay> {
   // final _scrollController = ScrollController();
+  final TextEditingController titleController = TextEditingController();
   final ImageService _imageService = ImageService();
   final CropperImage _cropImage = CropperImage();
   final CreatePdf _pdfCreator = CreatePdf();
@@ -23,6 +24,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
   @override
   void dispose() {
+    titleController.dispose();
     super.dispose();
   }
 
@@ -51,7 +53,8 @@ class _ImageDisplayState extends State<ImageDisplay> {
       loading = true;
     });
     try {
-      String savedPath = await _pdfCreator.createPdf(images);
+      String savedPath =
+          await _pdfCreator.createPdf(images, titleController.text);
       setState(() {
         loading = false;
       });
@@ -134,7 +137,12 @@ class _ImageDisplayState extends State<ImageDisplay> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Image Display'),
+        title: TextField(
+          controller: titleController,
+          decoration: const InputDecoration(
+            hintText: 'Enter File Name',
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.camera_alt),

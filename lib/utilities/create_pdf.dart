@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:dart_pdf_reader/dart_pdf_reader_io.dart' as pdf;
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class CreatePdf {
-  Future<String> createPdf(List<File> images) async {
+  Future<String> createPdf(List<File> images, String fileName) async {
     final doc = pw.Document();
 
     List<pw.MemoryImage> listImages = [];
@@ -31,9 +33,11 @@ class CreatePdf {
 
       if (Platform.isAndroid) {
         final directory = await getExternalStorageDirectory();
+        final String filename = fileName.trim().isEmpty
+            ? DateTime.now().millisecondsSinceEpoch.toString()
+            : fileName.trim();
         if (directory != null) {
-          final String filePath =
-              '${directory.path}/saved_${DateTime.now().millisecondsSinceEpoch}.pdf';
+          final String filePath = '${directory.path}/$filename.pdf';
           await File(filePath).writeAsBytes(await doc.save());
           return filePath;
         }
@@ -50,10 +54,10 @@ class CreatePdf {
   }
 
   Future<int> getFilePages(String path) async {
-    final stream = pdf.FileStream(File(path).openSync());
-    final doc = await pdf.PDFParser(stream).parse();
-    final catalog = await doc.catalog;
-    final pages = await catalog.getPages();
-    return pages.pageCount;
+    final Uint8List fileBytes = await File(path).readAsBytes();
+    PdfDocument loadedDocument = PdfDocument(inputBytes: fileBytes);
+    final int pages = loadedDocument.pages.count;
+    loadedDocument.dispose();
+    return pages;
   }
 }

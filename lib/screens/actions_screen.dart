@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:pdftool/providers/paths_notifier.dart';
 import 'package:pdftool/utilities/actions_utilities.dart';
 import 'package:pdftool/utilities/pdf_processing.dart';
+import 'package:pdftool/widgets/loading_screen.dart';
 import 'package:pdftool/widgets/menu_buttons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as path;
 
 class ActionsScreen extends ConsumerStatefulWidget {
   const ActionsScreen({super.key, required this.initalPaths});
@@ -18,7 +20,6 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
   final PdfProcessing pdfProcessing = PdfProcessing();
   final ActionsUtilities actionsUtilities = ActionsUtilities();
   int fileCount = 0;
-  bool loading = false;
 
   @override
   void initState() {
@@ -31,15 +32,53 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
     fileCount = widget.initalPaths.length;
   }
 
+  void _showLoading() {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const LoadingScreen(message: 'Please wait');
+        });
+  }
+
+  void _hideLoading() {
+    Navigator.of(context).pop();
+  }
+
   void mergePdfs(WidgetRef ref) async {
     final paths = ref.read(pathsProvider);
-    final mergedPdf = await pdfProcessing.mergeFiles(paths);
-    final mergedPath = await pdfProcessing.savePdf(mergedPdf, 'merged');
-    print('Merged PDF saved at $mergedPath');
+    if (paths.isEmpty || paths.length == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(paths.isEmpty
+              ? 'No files selected for merging'
+              : 'Select more files')));
+      return;
+    }
+    if (!mounted) return;
+    _showLoading();
+    try {
+      final mergedPdf = await pdfProcessing.mergeFiles(paths);
+      final mergedPath = await pdfProcessing.savePdf(mergedPdf, 'merged', '');
+      if (!mounted) return;
+      _hideLoading();
+      Navigator.of(context).pop(mergedPath != null
+          ? 'PDFs merged successfully'
+          : 'Error saving merged PDF');
+      print('Merged PDF saved at $mergedPath');
+    } catch (e) {
+      if (!mounted) return;
+      _hideLoading();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error merging PDFs:${e.toString()}')));
+    }
   }
 
   void splitPdf(WidgetRef ref) async {
     final paths = ref.read(pathsProvider);
+    if (paths.length != 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Limit to 1 Pdf file for splitting')));
+      return;
+    }
     final breakpoints = await actionsUtilities.fixBreakpoints(context);
     if (breakpoints == null || breakpoints.isEmpty) {
       if (!mounted) return;
@@ -48,12 +87,74 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
           .showSnackBar(const SnackBar(content: Text('No breakpoints set')));
       return;
     }
+    if (!mounted) return;
+    _showLoading();
+    try {
+      final String filePath = paths[0]['path'] as String;
+      final fileNamewithExt = path.basename(filePath);
+      final originalFilename =
+          fileNamewithExt.substring(0, fileNamewithExt.length - 4);
+      final splitPdfs = await pdfProcessing.splitFile(paths, breakpoints);
+      for (int i = 0; i < splitPdfs.length; i++) {
+        final splitPath = await pdfProcessing.savePdf(
+            splitPdfs[i], 'split_${i + 1}', originalFilename);
+        print('Split PDF saved at $splitPath');
+      }
+      if (!mounted) return;
+      _hideLoading();
+      Navigator.of(context).pop('Pdf Split successfully');
+    } catch (e) {
+      if (!mounted) return;
+      _hideLoading();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error splitting Pdf: ${e.toString()}')));
+    }
+  }
 
-    final splitPdfs = await pdfProcessing.splitFile(paths, breakpoints);
-    for (int i = 0; i < splitPdfs.length; i++) {
-      final splitPath =
-          await pdfProcessing.savePdf(splitPdfs[i], 'split_${i + 1}');
-      print('Split PDF saved at $splitPath');
+  void encryptPdf(WidgetRef ref) async {
+    final paths = ref.read(pathsProvider);
+    if (paths.length != 1) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Please limit to 1 file for encryption purposes')));
+      return;
+    }
+    final credentials = await actionsUtilities.setPasswords(context);
+    print(credentials);
+    if (credentials.isEmpty ||
+        credentials['userPassword']?.isEmpty == true ||
+        credentials['ownerPassword']?.isEmpty == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please set credentials to encrypt')));
+      return;
+    }
+
+    if (!mounted) return;
+    _showLoading();
+
+    try {
+      final filePath = paths[0]['path'] as String;
+      final fileNamewithExt = path.basename(filePath);
+      final originalFilename =
+          fileNamewithExt.substring(0, fileNamewithExt.length - 4);
+      final encryptedPdf = await pdfProcessing.encryptPdf(paths[0],
+          credentials['userPassword']!, credentials['ownerPassword']!);
+
+      final encryptedPath = await pdfProcessing.savePdf(
+          encryptedPdf, 'encrypted', originalFilename);
+      print('Encrypted file stored at:$encryptedPath');
+      if (!mounted) return;
+      _hideLoading();
+      Navigator.of(context).pop(encryptedPath != null
+          ? 'File encrypted successfully'
+          : 'Error saving encrypted PDF');
+    } catch (e) {
+      if (!mounted) return;
+      _hideLoading();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error encrypting PDF: ${e.toString()}')));
     }
   }
 
@@ -183,9 +284,15 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             trailing: ReorderableDragStartListener(
-                              index: index,
-                              child: Text('${item['size']} Mb'),
-                            ),
+                                index: index,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('${item['size']} Mb'),
+                                    const SizedBox(height: 4),
+                                    Text('${item['pages']} Pages'),
+                                  ],
+                                )),
                           ),
                         ),
                       );
@@ -193,7 +300,6 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
                   ),
                 ),
                 // Padding(padding: EdgeInsets.only(bottom: 20))
-                // Fixed footer section
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: const Padding(
@@ -211,7 +317,6 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
   @override
   Widget build(BuildContext context) {
     // Initialize paths after the first frame
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Actions'),
@@ -238,10 +343,13 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
                 mainAxisSpacing: 10,
               ),
               children: [
-                MenuButtons(
-                  icon: Icons.compress,
-                  text: 'Compress File',
-                  onPressed: () => {},
+                Opacity(
+                  opacity: 0.4,
+                  child: MenuButtons(
+                    icon: Icons.compress,
+                    text: 'Compress File',
+                    onPressed: () => {},
+                  ),
                 ),
                 MenuButtons(
                   icon: Icons.splitscreen_outlined,
@@ -259,8 +367,8 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
                 ),
                 MenuButtons(
                   icon: Icons.picture_as_pdf,
-                  text: 'Convert between formats',
-                  onPressed: () => {},
+                  text: 'Encrypt Pdf',
+                  onPressed: () => {encryptPdf(ref)},
                 ),
               ],
             ),
